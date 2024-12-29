@@ -4,6 +4,9 @@ from tkinter import messagebox, ttk
 import time
 import math
 
+# Font ayarları için yeni bir değişken ekleyelim
+MAC_FONT = ("SF Pro Display", "Helvetica Neue", "Arial")  # Mac OS tarzı fontlar
+
 class ModernSlotMakinesi:
     def __init__(self, root):
         self.root = root
@@ -39,18 +42,57 @@ class ModernSlotMakinesi:
         self.animating = False
         self.explosion_particles = []
         
+        # Animasyon hızı için yeni değişkenler
+        self.animation_speed = 0.01  # Daha hızlı animasyon
+        self.spin_duration = 5  # Daha kısa spin süresi
+        
+        # Ana container frame
+        self.main_container = tk.Frame(self.root, bg='#0D1117')
+        self.main_container.pack(expand=True, fill='both', padx=20, pady=10)
+        
+        # Canvas ve Scrollbar oluştur
+        self.canvas = tk.Canvas(self.main_container, bg='#0D1117', highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.main_container, orient="vertical", command=self.canvas.yview)
+        
+        # Scroll edilecek frame
+        self.scrollable_frame = tk.Frame(self.canvas, bg='#0D1117')
+        
+        # Canvas'a frame'i yerleştir
+        self.canvas_frame = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        
+        # Scrollbar ayarları
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        
+        # Mouse wheel binding
+        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        self.scrollable_frame.bind("<Configure>", self._configure_scroll_region)
+        self.canvas.bind("<Configure>", self._configure_canvas_window)
+        
+        # Layout
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+        
         self.create_widgets()
         self.neon_effect()
         
+    def _on_mousewheel(self, event):
+        self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+    def _configure_scroll_region(self, event):
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        
+    def _configure_canvas_window(self, event):
+        self.canvas.itemconfig(self.canvas_frame, width=event.width)
+
     def create_widgets(self):
         # Vegas tarzı başlık
-        title_frame = tk.Frame(self.root, bg='#0D1117')
+        title_frame = tk.Frame(self.scrollable_frame, bg='#0D1117')
         title_frame.pack(pady=20)
         
         # Lüks görünümlü logo/başlık
         self.baslik = tk.Label(title_frame, 
                              text="🎰 LUXURY VEGAS SLOTS 🎰",
-                             font=('Arial', 48, 'bold'),
+                             font=(MAC_FONT[0], 48, 'bold'),
                              bg='#0D1117',
                              fg='#FFD700')
         self.baslik.pack()
@@ -58,13 +100,13 @@ class ModernSlotMakinesi:
         # Alt başlık
         self.alt_baslik = tk.Label(title_frame,
                                  text="♦ PREMIUM EDITION ♦",
-                                 font=('Arial', 18),
+                                 font=(MAC_FONT[0], 18),
                                  bg='#0D1117',
                                  fg='#E5E4E2')
         self.alt_baslik.pack()
         
         # Ana oyun çerçevesi
-        self.game_frame = tk.Frame(self.root, bg='#1F2937', 
+        self.game_frame = tk.Frame(self.scrollable_frame, bg='#1F2937', 
                                  relief='raised', borderwidth=5)
         self.game_frame.pack(padx=20, pady=10)
         
@@ -107,7 +149,8 @@ class ModernSlotMakinesi:
         self.create_modern_paytable()
         
         # Klavye kısayolları bilgisi ekle
-        shortcuts_frame = tk.Frame(self.root, bg='#1F2937', relief='sunken', borderwidth=2)
+        shortcuts_frame = tk.Frame(self.scrollable_frame, bg='#1F2937', 
+                                 relief='sunken', borderwidth=2)
         shortcuts_frame.pack(pady=5, padx=20, fill='x')
         
         shortcuts_text = """
@@ -116,9 +159,25 @@ class ModernSlotMakinesi:
         """
         tk.Label(shortcuts_frame, text=shortcuts_text, font=('Arial', 12), 
                 bg='#1F2937', fg='#FFD700').pack(pady=5)
+        
+        # Modern buton stilleri için yeni bir stil oluştur
+        self.create_modern_button_style()
+    
+    def create_modern_button_style(self):
+        # Modern buton stili
+        style = ttk.Style()
+        style.configure('Modern.TButton',
+                       font=(MAC_FONT[0], 14, 'bold'),
+                       padding=10,
+                       background='#2E3440',
+                       foreground='white')
+        
+        style.map('Modern.TButton',
+                 background=[('active', '#4C566A')],
+                 foreground=[('active', 'white')])
     
     def create_info_panel(self):
-        info_frame = tk.Frame(self.root, bg='#0D1117')
+        info_frame = tk.Frame(self.scrollable_frame, bg='#0D1117')
         info_frame.pack(pady=20)
         
         styles = {
@@ -154,62 +213,77 @@ class ModernSlotMakinesi:
             setattr(self, f"{key}_label", label)
     
     def create_control_buttons(self):
-        control_frame = tk.Frame(self.root, bg='#0D1117')
+        control_frame = tk.Frame(self.scrollable_frame, bg='#0D1117')
         control_frame.pack(pady=20)
         
         button_styles = {
             'bahis_azalt': {
                 'text': '◀ BAHİS',
-                'bg': '#8B0000',
+                'gradient': ['#E74C3C', '#C0392B'],
                 'cmd': lambda: self.bahis_degistir(-50),
                 'icon': '➖'
             },
             'max_bet': {
                 'text': 'MAX BAHİS',
-                'bg': '#4B0082',
+                'gradient': ['#9B59B6', '#8E44AD'],
                 'cmd': lambda: self.bahis_degistir(1000),
                 'icon': '⭐'
             },
             'spin': {
                 'text': 'ÇEVİR',
-                'bg': '#006400',
+                'gradient': ['#2ECC71', '#27AE60'],
                 'cmd': self.slot_cevir,
                 'icon': '🎰'
             },
             'auto_spin': {
                 'text': 'AUTO',
-                'bg': '#8B4513',
+                'gradient': ['#E67E22', '#D35400'],
                 'cmd': self.auto_spin,
                 'icon': '🔄'
             },
             'bahis_arttir': {
                 'text': 'BAHİS ▶',
-                'bg': '#00008B',
+                'gradient': ['#3498DB', '#2980B9'],
                 'cmd': lambda: self.bahis_degistir(50),
                 'icon': '➕'
             }
         }
         
         for key, style in button_styles.items():
-            btn_frame = tk.Frame(control_frame, bg=style['bg'],
-                               relief='raised', borderwidth=3)
+            # Modern görünümlü buton çerçevesi
+            btn_frame = tk.Frame(control_frame, bg=style['gradient'][0],
+                               relief='flat', borderwidth=0)
             btn_frame.pack(side=tk.LEFT, padx=10)
             
+            # Gradient efektli modern buton
             btn = tk.Button(btn_frame,
                           text=f"{style['icon']} {style['text']}",
                           command=style['cmd'],
-                          font=('Arial', 16, 'bold'),
-                          bg=style['bg'],
+                          font=(MAC_FONT[0], 16, 'bold'),
+                          bg=style['gradient'][0],
                           fg='white',
+                          activebackground=style['gradient'][1],
+                          activeforeground='white',
+                          relief='flat',
+                          bd=0,
+                          padx=20,
+                          pady=10,
                           width=12 if key == 'spin' else 10,
-                          height=2)
-            btn.pack(padx=2, pady=2)
+                          cursor='hand2')  # El işaretçisi
+            
+            # Hover efekti
+            btn.bind('<Enter>', lambda e, b=btn, g=style['gradient']: 
+                    b.configure(bg=g[1]))
+            btn.bind('<Leave>', lambda e, b=btn, g=style['gradient']: 
+                    b.configure(bg=g[0]))
+            
+            btn.pack(padx=1, pady=1)
             
             if key == 'spin':
                 self.spin_button = btn
 
     def create_modern_paytable(self):
-        paytable_frame = tk.Frame(self.root, bg='#1F2937', 
+        paytable_frame = tk.Frame(self.scrollable_frame, bg='#1F2937', 
                                 relief='sunken', borderwidth=2)
         paytable_frame.pack(pady=10, padx=20, fill='x')
         
@@ -349,43 +423,42 @@ class ModernSlotMakinesi:
         self.bakiye_label.config(text=f"${self.bakiye:,}")
         self.kazanc_label.config(text="$0")
         
-        # Geliştirilmiş spin animasyonu
-        for t in range(25):
+        # Hızlandırılmış spin animasyonu
+        for t in range(self.spin_duration):
             for col_idx, col in enumerate(self.slot_labels):
                 for label_idx, label in enumerate(col):
-                    if t < 20:
-                        delay = (col_idx * 0.1) * math.sin(t * math.pi / 10)
-                        time.sleep(max(0.01, 0.02 * delay))
+                    if t < self.spin_duration - 5:
+                        delay = (col_idx * 0.05) * math.sin(t * math.pi / 10)
+                        time.sleep(max(0.005, self.animation_speed * delay))
                         
-                        if random.random() < 0.3:
+                        if random.random() < 0.2:  # Efekt görünme şansını azalttık
                             label.config(text=random.choice(self.efekt_sembolleri),
                                        fg=self.get_random_color())
                         else:
                             label.config(text=random.choice(list(self.semboller.keys())),
                                        fg='white')
                         
-                        # Rastgele kırılma efekti
-                        if random.random() < 0.1:
+                        # Kırılma efektini daha nadir yap
+                        if random.random() < 0.05:
                             self.shatter_animation(label)
-                        
-                        size = random.randint(28, 36)
-                        label.config(font=('Arial', size, 'bold'))
                     
             self.root.update()
         
-        # Son sonuçları göster ve düşme animasyonu
+        # Hızlı düşme animasyonu
         sonuc = [[random.choice(list(self.semboller.keys())) for _ in range(4)] for _ in range(10)]
         for i, col in enumerate(self.slot_labels):
             for j, label in enumerate(col):
-                self.symbol_fall_animation(i, j, sonuc[i][j])
+                label.config(text=sonuc[i][j], font=(MAC_FONT[0], 32, 'bold'))
+                self.root.update()
+                time.sleep(0.01)  # Çok kısa bekleme
         
-        # Kazanç hesapla ve efektleri göster
+        # Kazanç hesapla
         kazanc = self.kazanc_hesapla(sonuc)
         if kazanc > 0:
             if kazanc >= self.bahis * 50:
                 self.jackpot_animasyonu()
-                # Patlama efekti ekle
-                for i in range(5):
+                # Hızlı patlama efekti
+                for i in range(3):  # Patlama sayısını azalttık
                     x = random.randint(0, self.slot_frame.winfo_width())
                     y = random.randint(0, self.slot_frame.winfo_height())
                     self.create_explosion(x, y)
